@@ -119,14 +119,16 @@ export default function Dashboard({
           
           {hasMorningGoal ? (
             <div className="goal-row">
-              <p className="goal-text goal-text--inline">{todayEntry.morning_goal}</p>
-              <button 
-                onClick={() => onNavigate('morning')}
-                className="btn btn--icon btn--ghost"
-                title="Ziel bearbeiten"
-              >
-                ✏️
-              </button>
+              <div className="goal-input-display">
+                <span className="goal-text-content">{todayEntry.morning_goal}</span>
+                <button 
+                  onClick={() => onNavigate('morning')}
+                  className="btn btn--icon btn--ghost edit-btn"
+                  title="Ziel bearbeiten"
+                >
+                  ✎
+                </button>
+              </div>
             </div>
           ) : (
             <button 
