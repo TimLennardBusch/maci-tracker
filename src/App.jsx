@@ -19,6 +19,7 @@ function App() {
   const [todayEntry, setTodayEntry] = useState(null)
   const [weekEntries, setWeekEntries] = useState([])
   const [allEntries, setAllEntries] = useState([])
+  const [yesterdayEntry, setYesterdayEntry] = useState(null)
 
   // Check if it's evening time (after 17:00)
   const isEvening = new Date().getHours() >= 17
@@ -35,6 +36,17 @@ function App() {
       setTodayEntry(today)
       setAllEntries(history)
       setStreak(currentStreak)
+
+      // Find yesterday's entry from history
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const year = yesterday.getFullYear()
+      const month = String(yesterday.getMonth() + 1).padStart(2, '0')
+      const day = String(yesterday.getDate()).padStart(2, '0')
+      const yesterdayStr = `${year}-${month}-${day}`
+      
+      const foundYesterday = history.find(e => e.date === yesterdayStr)
+      setYesterdayEntry(foundYesterday || null)
 
       // Get week entries
       const weekStart = new Date()
@@ -98,6 +110,20 @@ function App() {
     } catch (error) {
       console.error('Error saving evening check:', error)
       throw error
+    }
+  }
+
+  // Handle popup completion (for today or yesterday)
+  const handleCompletion = async (completed, reflection, date = null) => {
+    try {
+      if (date) {
+        await dailyEntriesApi.completeEvening(DEMO_USER_ID, completed, reflection, date)
+      } else {
+        await dailyEntriesApi.completeEvening(DEMO_USER_ID, completed, reflection)
+      }
+      await loadData()
+    } catch (error) {
+      console.error('Error completing goal:', error)
     }
   }
 
@@ -165,8 +191,10 @@ function App() {
           <Dashboard
             streak={streak}
             todayEntry={todayEntry}
+            yesterdayEntry={yesterdayEntry}
             weekEntries={weekEntries}
             onNavigate={setCurrentView}
+            onComplete={handleCompletion}
             isEvening={isEvening}
           />
         )

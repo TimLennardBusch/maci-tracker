@@ -1,15 +1,37 @@
+import { useState } from 'react'
 import StreakBadge from './StreakBadge'
 import WeekOverview from './WeekOverview'
+import CompletionPopup from './CompletionPopup'
 
 export default function Dashboard({ 
   streak, 
   todayEntry, 
+  yesterdayEntry,
   weekEntries, 
   onNavigate,
+  onComplete,
   isEvening 
 }) {
+  const [showCompletionPopup, setShowCompletionPopup] = useState(false)
+  const [popupGoal, setPopupGoal] = useState('')
+  const [popupDate, setPopupDate] = useState(null)
+
   const hasMorningGoal = todayEntry?.morning_goal
   const hasCompletedEvening = todayEntry?.evening_completed !== null && todayEntry?.evening_completed !== undefined
+  
+  // Check if yesterday has a goal but no completion status
+  const hasYesterdayPending = yesterdayEntry?.morning_goal && (yesterdayEntry?.evening_completed === null || yesterdayEntry?.evening_completed === undefined)
+
+  const openCompletionPopup = (goal, date = null) => {
+    setPopupGoal(goal)
+    setPopupDate(date)
+    setShowCompletionPopup(true)
+  }
+
+  const handlePopupComplete = (completed) => {
+    onComplete(completed, null, popupDate) // Pass date if it's yesterday
+    setShowCompletionPopup(false)
+  }
 
   return (
     <div className="dashboard page-with-nav">
@@ -24,16 +46,45 @@ export default function Dashboard({
         {/* Compact Streak Section */}
         <StreakBadge streak={streak} size="compact" />
 
+        {/* CATCH-UP BOX: Yesterday's Goal */}
+        {hasYesterdayPending && (
+          <div className="card goal-card goal-card--compact animate-fade-in mb-4" style={{ borderLeft: '4px solid var(--warning-500)' }}>
+            <div className="goal-card-header">
+              <h2 className="goal-card-title" style={{ color: 'var(--warning-600)' }}>Gestriges Ziel offen</h2>
+              <button 
+                onClick={() => openCompletionPopup(yesterdayEntry.morning_goal, yesterdayEntry.date)}
+                className="status status--pending cursor-pointer"
+                title="Jetzt nachholen"
+              >
+                <span>⏳ Offen</span>
+              </button>
+            </div>
+            
+            <div className="goal-row">
+              <p className="goal-text goal-text--inline">{yesterdayEntry.morning_goal}</p>
+            </div>
+          </div>
+        )}
+
         {/* Today's Goal */}
         <div className="card goal-card goal-card--compact animate-fade-in" style={{ animationDelay: '0.1s' }}>
           <div className="goal-card-header">
             <h2 className="goal-card-title">Heutiges Ziel</h2>
             {hasMorningGoal && (
-              <span className={`status ${hasCompletedEvening ? 'status--evening' : 'status--pending'}`}>
-                {hasCompletedEvening 
-                  ? (todayEntry.evening_completed ? '✓ Geschafft' : '✗ Nicht geschafft')
-                  : '⏳ Offen'}
-              </span>
+              <>
+                {hasCompletedEvening ? (
+                  <span className={`status ${todayEntry.evening_completed ? 'status--success' : 'status--failed'}`}>
+                    {todayEntry.evening_completed ? '✓ Geschafft' : '✗ Nicht geschafft'}
+                  </span>
+                ) : (
+                  <button 
+                    onClick={() => openCompletionPopup(todayEntry.morning_goal)}
+                    className="status status--pending cursor-pointer"
+                  >
+                    <span>⏳ Offen</span>
+                  </button>
+                )}
+              </>
             )}
           </div>
           
@@ -57,10 +108,10 @@ export default function Dashboard({
             </button>
           )}
 
-          {/* Evening Action - only show if goal exists and not completed */}
+          {/* Evening Action - only show if goal exists and not completed AND it's evening */}
           {hasMorningGoal && !hasCompletedEvening && isEvening && (
             <button 
-              onClick={() => onNavigate('evening')}
+              onClick={() => openCompletionPopup(todayEntry.morning_goal)}
               className="btn btn--success btn--full mt-4"
             >
               🌙 Abend-Check durchführen
@@ -72,6 +123,14 @@ export default function Dashboard({
         <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <WeekOverview entries={weekEntries} />
         </div>
+
+        {/* Completion Popup */}
+        <CompletionPopup 
+          isOpen={showCompletionPopup}
+          goal={popupGoal}
+          onClose={() => setShowCompletionPopup(false)}
+          onComplete={handlePopupComplete}
+        />
       </div>
     </div>
   )

@@ -79,9 +79,12 @@ export const dailyEntriesApi = {
   },
 
   // Complete evening check
-  async completeEvening(userId = USER_ID, completed, reflectionNote = null) {
-    const today = getDateKey(new Date())
-    const entryRef = ref(db, `dailyEntries/${userId}/${today}`)
+  async completeEvening(userId = USER_ID, completed, reflectionNote = null, dateKey = null) {
+    const today = dateKey ? formatDate(new Date(dateKey)) : getDateKey(new Date())
+    // If dateKey provided, ensure it uses underscores for firebase key
+    const entryDateKey = dateKey ? dateKey.replace(/-/g, '_') : today
+    
+    const entryRef = ref(db, `dailyEntries/${userId}/${entryDateKey}`)
     
     try {
       const updates = {
