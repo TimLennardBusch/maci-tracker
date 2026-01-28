@@ -57,7 +57,8 @@ export default function AnalyticsChart({ entries }) {
     }).length
     const total = relevantDays.filter(d => {
       const entry = getEntryForDate(d)
-      return entry?.evening_completed !== null && entry?.evening_completed !== undefined
+      // Only count as tracked if it's explicitly true or false (boolean)
+      return typeof entry?.evening_completed === 'boolean'
     }).length
     
     return total > 0 ? Math.round((completed / total) * 100) : null
@@ -148,7 +149,7 @@ export default function AnalyticsChart({ entries }) {
   }
 
   // Calculate stats
-  const totalDays = entries.filter(e => e.evening_completed !== null && e.evening_completed !== undefined).length
+  const totalDays = entries.filter(e => typeof e.evening_completed === 'boolean').length
   const completedDays = entries.filter(e => e.evening_completed === true).length
   const successRate = totalDays > 0 ? Math.round((completedDays / totalDays) * 100) : 0
 

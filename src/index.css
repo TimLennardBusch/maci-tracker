@@ -660,8 +660,8 @@ body {
 }
 
 .day-cell--failed {
-  background: var(--gray-200);
-  color: var(--text-muted);
+  background: var(--error-50);
+  color: var(--error-500);
 }
 
 .day-cell--today {
@@ -1239,8 +1239,8 @@ body {
   background: var(--bg-card);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
-  width: 100%;
-  max-width: 340px;
+  width: calc(100% - var(--space-8));
+  max-width: 440px;
   text-align: center;
   box-shadow: var(--shadow-xl);
   animation: slideUp 0.3s ease;

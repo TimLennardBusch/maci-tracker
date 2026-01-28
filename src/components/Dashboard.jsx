@@ -31,12 +31,16 @@ export default function Dashboard({
     setShowCompletionPopup(false)
   }
 
-  // Render status icon button
-  const StatusBadge = ({ completed, isPending, onClick }) => {
+  // Render status icon button - ALWAYS clickable to edit
+  const StatusBadge = ({ completed, isPending, onClick, goal, date }) => {
+    const handleClick = () => {
+      openCompletionPopup(goal, date)
+    }
+
     if (isPending) {
       return (
         <button 
-          onClick={onClick}
+          onClick={handleClick}
           className="status-icon status-icon--pending"
           title="Ziel bestätigen"
         >
@@ -45,11 +49,27 @@ export default function Dashboard({
       )
     }
     
-    if (completed) {
-      return <span className="status-icon status-icon--success">✓</span>
+    if (completed === true) {
+      return (
+        <button 
+          onClick={handleClick}
+          className="status-icon status-icon--success"
+          title="Status ändern"
+        >
+          ✓
+        </button>
+      )
     }
     
-    return <span className="status-icon status-icon--failed">✗</span>
+    return (
+      <button 
+        onClick={handleClick}
+        className="status-icon status-icon--failed"
+        title="Status ändern"
+      >
+        ✗
+      </button>
+    )
   }
 
   return (
@@ -71,8 +91,9 @@ export default function Dashboard({
             <div className="goal-card-header">
               <h2 className="goal-card-title goal-card-title--warning">Gestriges Ziel</h2>
               <StatusBadge 
-                isPending={true} 
-                onClick={() => openCompletionPopup(yesterdayEntry.morning_goal, yesterdayEntry.date)}
+                isPending={true}
+                goal={yesterdayEntry.morning_goal}
+                date={yesterdayEntry.date}
               />
             </div>
             
@@ -90,7 +111,8 @@ export default function Dashboard({
               <StatusBadge 
                 completed={todayEntry.evening_completed}
                 isPending={!hasCompletedEvening}
-                onClick={() => openCompletionPopup(todayEntry.morning_goal)}
+                goal={todayEntry.morning_goal}
+                date={null}
               />
             )}
           </div>
