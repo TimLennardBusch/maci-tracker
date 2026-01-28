@@ -694,6 +694,56 @@ body {
 }
 
 /* ==========================================
+   GOAL ROW & EDITING
+   ========================================== */
+
+.goal-input-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--gray-100);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  width: 100%;
+  /* Gradient border left matching streak number */
+  border-left: 4px solid transparent;
+  background-image: linear-gradient(var(--gray-100), var(--gray-100)), 
+                    linear-gradient(to bottom, #a78bfa, #fdba74);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+.goal-text-content {
+  flex: 1;
+  font-size: var(--font-size-lg);
+  color: var(--text-primary);
+  margin-right: var(--space-2);
+}
+
+.edit-btn {
+  font-size: 1.25rem !important; /* Smaller icon */
+  padding: var(--space-2) !important;
+  color: var(--text-secondary);
+  transform: scaleX(-1); /* Mirror horizontally */
+  opacity: 0.6;
+  transition: all var(--transition-fast);
+  background: white !important;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.edit-btn:hover {
+  opacity: 1;
+  background: white;
+  transform: scaleX(-1) scale(1.1);
+}
+
+/* ==========================================
    MORNING INPUT
    ========================================== */
 
