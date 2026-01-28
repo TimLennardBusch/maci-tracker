@@ -1,39 +1,34 @@
-# Apple Shortcuts API Dokumentation
+# Apple Shortcuts API Dokumentation (Firebase)
 
-Diese Dokumentation beschreibt, wie du Apple Kurzbefehle einrichtest, um mit der 1% Besser App zu interagieren.
+Diese Dokumentation beschreibt, wie du Apple Kurzbefehle einrichtest, um mit der 1% Besser App via Firebase REST API zu interagieren.
 
-## Supabase REST API Basis
+## Firebase REST API Basis
 
-Alle API-Anfragen gehen an:
+Firebase Realtime Database bietet eine REST API:
 
 ```
-https://YOUR_PROJECT_ID.supabase.co/rest/v1/
+https://DEIN-PROJEKT-default-rtdb.europe-west1.firebasedatabase.app/
 ```
 
-### Erforderliche Headers
-
-Jede Anfrage benötigt diese Headers:
-
-| Header          | Wert                                     |
-| --------------- | ---------------------------------------- |
-| `apikey`        | Dein Supabase Anon Key                   |
-| `Authorization` | `Bearer YOUR_ANON_KEY`                   |
-| `Content-Type`  | `application/json`                       |
-| `Prefer`        | `return=representation` (für POST/PATCH) |
+> [!NOTE]
+> Die Region kann variieren (europe-west1, us-central1, etc.) - prüfe deine Firebase Console.
 
 ---
 
 ## API Endpoints
 
-### 1. Morgenziel setzen (POST)
+### 1. Morgenziel setzen (PUT)
 
-Setzt das Tagesziel am Morgen.
+Setzt oder aktualisiert das Tagesziel.
 
 **Endpoint:**
 
 ```
-POST /rest/v1/daily_entries
+PUT /dailyEntries/demo-user-001/2024_01_28.json
 ```
+
+> [!IMPORTANT]
+> Firebase nutzt Unterstriche statt Bindestriche im Datum: `2024_01_28` nicht `2024-01-28`
 
 **Body:**
 
@@ -41,42 +36,27 @@ POST /rest/v1/daily_entries
 {
   "user_id": "demo-user-001",
   "date": "2024-01-28",
-  "morning_goal": "10 Minuten meditieren"
+  "morning_goal": "10 Minuten meditieren",
+  "evening_completed": null,
+  "created_at": "2024-01-28T07:00:00Z",
+  "updated_at": "2024-01-28T07:00:00Z"
 }
 ```
 
-**Apple Shortcut Schritte:**
+**Vollständige URL:**
 
-1. **Datum abrufen**: Aktuelles Datum im Format `YYYY-MM-DD`
-2. **Text eingeben**: Prompt für Morgenziel
-3. **URL abrufen**: POST request an Supabase
+```
+https://YOUR-PROJECT-default-rtdb.europe-west1.firebasedatabase.app/dailyEntries/demo-user-001/2024_01_28.json
+```
 
-### 2. Morgenziel aktualisieren (PATCH)
+### 2. Abend-Bestätigung (PATCH)
 
-Falls bereits ein Eintrag existiert.
+Aktualisiert nur das evening_completed Feld.
 
 **Endpoint:**
 
 ```
-PATCH /rest/v1/daily_entries?user_id=eq.demo-user-001&date=eq.2024-01-28
-```
-
-**Body:**
-
-```json
-{
-  "morning_goal": "Neues Ziel"
-}
-```
-
-### 3. Abend-Bestätigung (PATCH)
-
-Bestätigt ob das Ziel erreicht wurde.
-
-**Endpoint:**
-
-```
-PATCH /rest/v1/daily_entries?user_id=eq.demo-user-001&date=eq.2024-01-28
+PATCH /dailyEntries/demo-user-001/2024_01_28.json
 ```
 
 **Body (Erfolg):**
@@ -84,7 +64,8 @@ PATCH /rest/v1/daily_entries?user_id=eq.demo-user-001&date=eq.2024-01-28
 ```json
 {
   "evening_completed": true,
-  "reflection_note": "Optionale Notiz"
+  "reflection_note": "Hat super geklappt!",
+  "updated_at": "2024-01-28T21:00:00Z"
 }
 ```
 
@@ -93,28 +74,27 @@ PATCH /rest/v1/daily_entries?user_id=eq.demo-user-001&date=eq.2024-01-28
 ```json
 {
   "evening_completed": false,
-  "reflection_note": "Was lief schief?"
+  "updated_at": "2024-01-28T21:00:00Z"
 }
 ```
 
-### 4. Heutiges Ziel abrufen (GET)
-
-Zeigt das aktuelle Tagesziel an.
+### 3. Heutiges Ziel abrufen (GET)
 
 **Endpoint:**
 
 ```
-GET /rest/v1/daily_entries?user_id=eq.demo-user-001&date=eq.2024-01-28&select=morning_goal,evening_completed
+GET /dailyEntries/demo-user-001/2024_01_28.json
 ```
 
-### 5. Streak abrufen (GET)
+**Response:**
 
-Holt alle abgeschlossenen Tage für Streak-Berechnung.
-
-**Endpoint:**
-
-```
-GET /rest/v1/daily_entries?user_id=eq.demo-user-001&evening_completed=eq.true&order=date.desc&limit=100
+```json
+{
+  "user_id": "demo-user-001",
+  "date": "2024-01-28",
+  "morning_goal": "10 Minuten meditieren",
+  "evening_completed": null
+}
 ```
 
 ---
@@ -125,25 +105,30 @@ GET /rest/v1/daily_entries?user_id=eq.demo-user-001&evening_completed=eq.true&or
 1. [Eingabe erfragen] - "Was macht dich heute 1% besser?"
    → Speichere als "Ziel"
 
-2. [Aktuelles Datum] - Format: YYYY-MM-DD
-   → Speichere als "Heute"
+2. [Aktuelles Datum] - Format berechnen
+   → Verwende "Datumsformat: yyyy_MM_dd"
+   → Speichere als "DatumKey"
 
-3. [URL abrufen]
-   URL: https://YOUR_PROJECT.supabase.co/rest/v1/daily_entries
-   Methode: POST
+3. [Aktuelles Datum] - Format ISO
+   → Verwende "Datumsformat: yyyy-MM-dd"
+   → Speichere als "DatumISO"
+
+4. [URL abrufen]
+   URL: https://YOUR-PROJECT-default-rtdb.europe-west1.firebasedatabase.app/dailyEntries/demo-user-001/[DatumKey].json
+   Methode: PUT
    Headers:
-     - apikey: YOUR_ANON_KEY
-     - Authorization: Bearer YOUR_ANON_KEY
      - Content-Type: application/json
-     - Prefer: return=representation
    Body (JSON):
      {
        "user_id": "demo-user-001",
-       "date": [Heute],
-       "morning_goal": [Ziel]
+       "date": "[DatumISO]",
+       "morning_goal": "[Ziel]",
+       "evening_completed": null,
+       "created_at": "[Aktuelles Datum ISO8601]",
+       "updated_at": "[Aktuelles Datum ISO8601]"
      }
 
-4. [Mitteilung anzeigen] - "✅ Ziel gesetzt: [Ziel]"
+5. [Mitteilung anzeigen] - "✅ Ziel gesetzt: [Ziel]"
 ```
 
 ## Beispiel Apple Shortcut: Abend-Check
@@ -153,30 +138,50 @@ GET /rest/v1/daily_entries?user_id=eq.demo-user-001&evening_completed=eq.true&or
    Optionen: "✓ Ja", "✗ Nein"
    → Speichere als "Ergebnis"
 
-2. [Aktuelles Datum] - Format: YYYY-MM-DD
-   → Speichere als "Heute"
+2. [Aktuelles Datum] - Format: yyyy_MM_dd
+   → Speichere als "DatumKey"
 
 3. [Wenn Ergebnis = "✓ Ja"]
-   [Variable setzen] completed = true
+   → Setze "StatusJSON" auf: {"evening_completed": true}
    [Sonst]
-   [Variable setzen] completed = false
+   → Setze "StatusJSON" auf: {"evening_completed": false}
 
 4. [URL abrufen]
-   URL: https://YOUR_PROJECT.supabase.co/rest/v1/daily_entries?user_id=eq.demo-user-001&date=eq.[Heute]
+   URL: https://YOUR-PROJECT-default-rtdb.firebasedatabase.app/dailyEntries/demo-user-001/[DatumKey].json
    Methode: PATCH
-   Headers: (wie oben)
-   Body: { "evening_completed": [completed] }
+   Headers:
+     - Content-Type: application/json
+   Body: [StatusJSON]
 
 5. [Mitteilung anzeigen] - "Abend-Check gespeichert!"
 ```
 
 ---
 
-## Automatisierung mit Kurzbefehlen
+## Wichtige Hinweise für Firebase
 
-1. **Morgens um 8:00**: Automatisch Morgenziel-Shortcut starten
-2. **Abends um 21:00**: Automatisch Abend-Check Shortcut starten
+| Thema                 | Details                                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------------------- |
+| **Authentifizierung** | Für öffentlichen Zugriff müssen die Database Rules auf `".read": true, ".write": true` gesetzt sein |
+| **Datum-Format**      | Nutze Unterstriche im Key: `2024_01_28`                                                             |
+| **Region**            | Prüfe deine Region in der Firebase Console                                                          |
 
-Gehe zu:
+### Database Rules (für Shortcuts notwendig)
 
-- Einstellungen → Kurzbefehle → Automation → + → Tageszeit
+In Firebase Console → Realtime Database → Rules:
+
+```json
+{
+  "rules": {
+    "dailyEntries": {
+      "$userId": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}
+```
+
+> [!WARNING]
+> Diese Rules sind offen für jeden! Für Produktion solltest du Firebase Authentication einrichten.

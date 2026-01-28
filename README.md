@@ -23,23 +23,47 @@ cd "20 daily habit tracker"
 npm install
 ```
 
-### 2. Supabase einrichten
+### 2. Firebase einrichten
 
-1. Erstelle ein kostenloses Projekt auf [supabase.com](https://supabase.com)
-2. Gehe zum SQL Editor und führe `supabase_schema.sql` aus
-3. Kopiere URL und Anon Key aus Settings → API
+1. Gehe zu [console.firebase.google.com](https://console.firebase.google.com)
+2. Neues Projekt erstellen
+3. **Realtime Database** aktivieren (nicht Firestore!)
+4. Database Rules setzen (siehe unten)
+5. Projekt-Konfiguration kopieren
 
 ### 3. Environment Variablen
 
 Bearbeite `.env`:
 
 ```env
-VITE_SUPABASE_URL=https://dein-projekt.supabase.co
-VITE_SUPABASE_ANON_KEY=dein-anon-key
+VITE_FIREBASE_API_KEY=AIza...
+VITE_FIREBASE_AUTH_DOMAIN=dein-projekt.firebaseapp.com
+VITE_FIREBASE_DATABASE_URL=https://dein-projekt-default-rtdb.europe-west1.firebasedatabase.app
+VITE_FIREBASE_PROJECT_ID=dein-projekt
+VITE_FIREBASE_STORAGE_BUCKET=dein-projekt.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
 VITE_APP_PASSWORD=dein-sicheres-passwort
 ```
 
-### 4. Starten
+### 4. Firebase Database Rules
+
+In Firebase Console → Realtime Database → Rules:
+
+```json
+{
+  "rules": {
+    "dailyEntries": {
+      "$userId": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}
+```
+
+### 5. Starten
 
 ```bash
 npm run dev
@@ -65,62 +89,56 @@ Siehe [docs/APPLE_SHORTCUTS.md](docs/APPLE_SHORTCUTS.md) für die vollständige 
 
 **Kurz-Übersicht:**
 
-| Aktion       | Methode | Endpoint                                |
-| ------------ | ------- | --------------------------------------- |
-| Ziel setzen  | POST    | `/rest/v1/daily_entries`                |
-| Abend-Check  | PATCH   | `/rest/v1/daily_entries?date=eq.{date}` |
-| Ziel abrufen | GET     | `/rest/v1/daily_entries?date=eq.{date}` |
+| Aktion       | Methode | Endpoint                                   |
+| ------------ | ------- | ------------------------------------------ |
+| Ziel setzen  | PUT     | `/dailyEntries/demo-user-001/{datum}.json` |
+| Abend-Check  | PATCH   | `/dailyEntries/demo-user-001/{datum}.json` |
+| Ziel abrufen | GET     | `/dailyEntries/demo-user-001/{datum}.json` |
 
 ## 🛠 Manuelle Konfigurationsschritte
 
-Nach der Installation müssen diese Schritte manuell durchgeführt werden:
+### 1. Firebase Projekt erstellen
 
-### 1. Supabase Projekt erstellen
+- Gehe zu [console.firebase.google.com](https://console.firebase.google.com)
+- "Projekt hinzufügen" klicken
+- Projektnamen eingeben (z.B. "habit-tracker-1percent")
+- Google Analytics optional deaktivieren
+- Projekt erstellen
 
-- Gehe zu [supabase.com](https://supabase.com)
-- Erstelle neues Projekt (kostenloser Tier reicht)
-- Warte bis das Projekt initialisiert ist
+### 2. Realtime Database aktivieren
 
-### 2. Datenbank-Schema anlegen
+- Im Menü links: "Build" → "Realtime Database"
+- "Datenbank erstellen" klicken
+- Standort wählen (europe-west1 empfohlen)
+- "Im Testmodus starten" wählen (für Entwicklung)
 
-- Öffne SQL Editor im Supabase Dashboard
-- Kopiere Inhalt von `supabase_schema.sql`
-- Führe das SQL aus
+### 3. Database Rules anpassen
 
-### 3. API Credentials kopieren
+- Tab "Regeln" öffnen
+- Regeln von oben einfügen und "Veröffentlichen"
 
-- Gehe zu Settings → API
-- Kopiere "Project URL" → `VITE_SUPABASE_URL`
-- Kopiere "anon public" Key → `VITE_SUPABASE_ANON_KEY`
+### 4. Web-App registrieren
 
-### 4. App-Passwort setzen
-
-- Wähle ein sicheres Passwort
-- Setze es als `VITE_APP_PASSWORD` in `.env`
+- Projektübersicht → Web-App hinzufügen (</> Icon)
+- App-Nickname eingeben
+- Firebase SDK Config kopieren
+- Werte in `.env` eintragen
 
 ### 5. (Optional) Deployment
 
-Für öffentlichen Zugriff deployen auf:
-
-- [Vercel](https://vercel.com) - `npx vercel`
-- [Netlify](https://netlify.com) - Drag & Drop des `dist` Ordners
-- GitHub Pages
-
-### 6. Apple Shortcuts erstellen
-
-- Siehe `docs/APPLE_SHORTCUTS.md`
-- Ersetze `YOUR_PROJECT_ID` und `YOUR_ANON_KEY`
-- Richte Automationen für Morgen/Abend ein
+```bash
+npm run build
+# Deploy dist/ Ordner auf Vercel, Netlify, etc.
+```
 
 ## 📁 Projektstruktur
 
 ```
 20 daily habit tracker/
-├── .env                    # Supabase Credentials
+├── .env                    # Firebase Credentials
 ├── index.html              # Entry HTML
 ├── vite.config.js          # Vite + PWA Config
 ├── package.json
-├── supabase_schema.sql     # Database Schema
 ├── public/
 │   └── favicon.svg
 ├── src/
@@ -128,7 +146,7 @@ Für öffentlichen Zugriff deployen auf:
 │   ├── App.jsx
 │   ├── index.css           # Design System
 │   ├── lib/
-│   │   └── supabase.js     # API Client
+│   │   └── supabase.js     # Firebase Client (historischer Name)
 │   └── components/
 │       ├── Login.jsx
 │       ├── Dashboard.jsx
@@ -147,7 +165,7 @@ Für öffentlichen Zugriff deployen auf:
 - **Frontend**: React 18 + Vite
 - **Styling**: Vanilla CSS mit Custom Properties
 - **Charts**: Chart.js + react-chartjs-2
-- **Database**: Supabase (PostgreSQL)
+- **Database**: Firebase Realtime Database
 - **PWA**: vite-plugin-pwa
 
 ## 📄 Lizenz
