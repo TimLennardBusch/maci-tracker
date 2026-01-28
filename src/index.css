@@ -562,8 +562,8 @@ body {
 
 .streak-section {
   text-align: center;
-  padding: var(--space-8) var(--space-4);
-  margin-bottom: var(--space-6);
+  padding: var(--space-6) var(--space-4);
+  margin-bottom: var(--space-4); /* Consistent with goal-card */
 }
 
 .streak-number {
@@ -588,20 +588,20 @@ body {
 
 /* Goal Card */
 .goal-card {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4); /* Consistent spacing */
 }
 
 .goal-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-4);
-  padding-right: 2px; /* Slight adjustment to align edge with week view */
+  margin-bottom: var(--space-3);
 }
 
 .goal-card-title {
-  font-size: var(--font-size-lg); /* Consistent with streak label */
+  font-size: var(--font-size-sm); /* Match week-overview-title */
   font-weight: 600;
+  color: var(--text-secondary); /* Match week-overview-title */
 }
 
 .goal-text {
@@ -621,11 +621,11 @@ body {
 
 /* Week Overview */
 .week-overview {
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-4); /* Same as goal-card */
 }
 
 .week-overview-title {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-sm); /* Same as goal-card-title */
   font-weight: 600;
   color: var(--text-secondary);
   margin-bottom: var(--space-3);
