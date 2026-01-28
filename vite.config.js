@@ -8,10 +8,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['app-icon.jpg'],
       manifest: {
-        name: '1% Besser - Daily Habit Tracker',
-        short_name: '1% Besser',
+        name: '1%',
+        short_name: '1%',
         description: 'Was macht mich heute 1% besser?',
         theme_color: '#6366f1',
         background_color: '#f8fafc',
@@ -21,19 +21,19 @@ export default defineConfig({
         scope: '/habit-tracker/',
         icons: [
           {
-            src: 'favicon.svg',
+            src: 'app-icon.jpg',
             sizes: '192x192',
-            type: 'image/svg+xml'
+            type: 'image/jpeg'
           },
           {
-            src: 'favicon.svg',
+            src: 'app-icon.jpg',
             sizes: '512x512',
-            type: 'image/svg+xml'
+            type: 'image/jpeg'
           },
           {
-            src: 'favicon.svg',
+            src: 'app-icon.jpg',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/jpeg',
             purpose: 'any maskable'
           }
         ]
