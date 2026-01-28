@@ -31,20 +31,32 @@ export default function WeekOverview({ entries }) {
   }
 
   const getDayStatus = (date, entry) => {
-    const isToday = date.getTime() === today.getTime()
-    const isFuture = date > today
+    // Timezone fix: use local date string comparison
+    const dateStr = date.toISOString().split('T')[0]
+    const todayStr = new Date().toISOString().split('T')[0] // Careful: this is UTC, need local fix too?
+    
+    // Better date comparison using local time
+    const checkDate = new Date(dateStr)
+    checkDate.setHours(0,0,0,0)
+    
+    const todayDate = new Date()
+    todayDate.setHours(0,0,0,0)
+    
+    const isFuture = checkDate > todayDate
+    const isToday = checkDate.getTime() === todayDate.getTime()
     
     if (isFuture) return 'future'
     if (isToday) {
       if (!entry) return 'today-empty'
-      if (entry.evening_completed === null) return 'today-pending'
+      // treat as pending if not explicitly boolean true/false
+      if (typeof entry.evening_completed !== 'boolean') return 'today-pending'
       return entry.evening_completed ? 'today-completed' : 'today-failed'
     }
     
     if (!entry) return 'empty'
-    if (entry.evening_completed === true) return 'completed'
-    if (entry.evening_completed === false) return 'failed'
-    return 'pending'
+    // treat as pending if not explicitly boolean true/false
+    if (typeof entry.evening_completed !== 'boolean') return 'pending' 
+    return entry.evening_completed ? 'completed' : 'failed'
   }
 
   const getDayClasses = (status) => {

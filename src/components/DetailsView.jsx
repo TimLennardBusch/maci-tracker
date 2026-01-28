@@ -15,14 +15,16 @@ export default function DetailsView({ entries }) {
   }
 
   const getStatusIcon = (entry) => {
-    if (entry.evening_completed === true) return '✓'
-    if (entry.evening_completed === false) return '✗'
+    if (typeof entry.evening_completed === 'boolean') {
+      return entry.evening_completed ? '✓' : '✗'
+    }
     return '⏳'
   }
 
   const getStatusClass = (entry) => {
-    if (entry.evening_completed === true) return 'details-status--success'
-    if (entry.evening_completed === false) return 'details-status--failed'
+    if (typeof entry.evening_completed === 'boolean') {
+      return entry.evening_completed ? 'details-status--success' : 'details-status--failed'
+    }
     return 'details-status--pending'
   }
 

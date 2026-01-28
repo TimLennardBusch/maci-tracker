@@ -17,10 +17,11 @@ export default function Dashboard({
   const [popupDate, setPopupDate] = useState(null)
 
   const hasMorningGoal = todayEntry?.morning_goal
-  const hasCompletedEvening = todayEntry?.evening_completed !== null && todayEntry?.evening_completed !== undefined
+  // Only consider it completed if it is explicitly true or false (boolean), not null, undefined or empty string
+  const hasCompletedEvening = typeof todayEntry?.evening_completed === 'boolean'
   
-  // Check if yesterday has a goal but no completion status
-  const hasYesterdayPending = yesterdayEntry?.morning_goal && (yesterdayEntry?.evening_completed === null || yesterdayEntry?.evening_completed === undefined)
+  // Check if yesterday has a goal but no completion status (null, undefined, or empty string)
+  const hasYesterdayPending = yesterdayEntry?.morning_goal && typeof yesterdayEntry?.evening_completed !== 'boolean'
 
   const openCompletionPopup = (goal, date = null) => {
     setPopupGoal(goal)
