@@ -1,8 +1,9 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import confetti from 'canvas-confetti'
 
 export default function CompletionPopup({ goal, isOpen, onClose, onComplete }) {
   const modalRef = useRef(null)
+  const [reflection, setReflection] = useState('')
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -12,6 +13,7 @@ export default function CompletionPopup({ goal, isOpen, onClose, onComplete }) {
     if (isOpen) {
       document.addEventListener('keydown', handleEscape)
       document.body.style.overflow = 'hidden'
+      setReflection('') // Reset reflection when popup opens
     }
     
     return () => {
@@ -36,6 +38,15 @@ export default function CompletionPopup({ goal, isOpen, onClose, onComplete }) {
     })
   }
 
+  const handleSuccess = () => {
+    handleCreateConfetti()
+    onComplete(true, reflection)
+  }
+
+  const handleFailure = () => {
+    onComplete(false, reflection)
+  }
+
   if (!isOpen) return null
 
   return (
@@ -49,24 +60,32 @@ export default function CompletionPopup({ goal, isOpen, onClose, onComplete }) {
         <h2 className="popup-title">Ziel erreicht?</h2>
         <p className="popup-goal">{goal}</p>
 
+        {/* Reflection input */}
+        <div className="popup-reflection">
+          <textarea
+            className="popup-reflection-input input textarea"
+            placeholder="Reflexion des Tages (optional)..."
+            value={reflection}
+            onChange={(e) => setReflection(e.target.value)}
+            rows={3}
+          />
+        </div>
+
         <div className="popup-actions">
           <button
-            onClick={() => {
-              handleCreateConfetti()
-              onComplete(true)
-            }}
-            className="popup-btn popup-btn--success"
-          >
-            <span className="popup-btn-icon">✓</span>
-            Geschafft
-          </button>
-          
-          <button
-            onClick={() => onComplete(false)}
+            onClick={handleFailure}
             className="popup-btn popup-btn--danger"
           >
             <span className="popup-btn-icon">✗</span>
             Leider nicht
+          </button>
+          
+          <button
+            onClick={handleSuccess}
+            className="popup-btn popup-btn--success"
+          >
+            <span className="popup-btn-icon">✓</span>
+            Geschafft
           </button>
         </div>
 

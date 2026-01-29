@@ -183,7 +183,7 @@ function App() {
           />
         )
       case 'analytics':
-        return <AnalyticsChart entries={allEntries} />
+        return <AnalyticsChart entries={allEntries} currentStreak={streak} />
       case 'details':
         return <DetailsView entries={allEntries} />
       default:

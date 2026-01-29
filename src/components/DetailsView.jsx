@@ -57,13 +57,10 @@ export default function DetailsView({ entries }) {
                   </span>
                 </div>
                 
-                <p className="details-goal">{entry.morning_goal}</p>
+                <p className="details-goal details-goal--bold">{entry.morning_goal}</p>
                 
                 {entry.reflection_note && (
-                  <div className="details-reflection">
-                    <span className="details-reflection-label">💭 Reflexion:</span>
-                    <p className="details-reflection-text">{entry.reflection_note}</p>
-                  </div>
+                  <p className="details-reflection-text">{entry.reflection_note}</p>
                 )}
               </div>
             ))}

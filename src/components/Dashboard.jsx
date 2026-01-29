@@ -26,8 +26,8 @@ export default function Dashboard({
     setShowCompletionPopup(true)
   }
 
-  const handlePopupComplete = (completed) => {
-    onComplete(completed, null, popupDate)
+  const handlePopupComplete = (completed, reflection) => {
+    onComplete(completed, reflection, popupDate)
     setShowCompletionPopup(false)
   }
 
