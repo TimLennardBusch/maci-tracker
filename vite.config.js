@@ -3,22 +3,22 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  base: '/habit-tracker/',
+  base: '/maci-tracker/',
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['app-icon.jpg'],
       manifest: {
-        name: '1%',
-        short_name: '1%',
-        description: 'Was macht mich heute 1% besser?',
-        theme_color: '#6366f1',
+        name: 'Maci Tracker',
+        short_name: 'Maci',
+        description: 'Dein Rauchfrei-Coach',
+        theme_color: '#10b981',
         background_color: '#f8fafc',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/habit-tracker/',
-        scope: '/habit-tracker/',
+        start_url: '/maci-tracker/',
+        scope: '/maci-tracker/',
         icons: [
           {
             src: 'app-icon.jpg',

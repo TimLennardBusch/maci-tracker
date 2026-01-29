@@ -1469,3 +1469,142 @@ button.status-icon:hover {
 .goal-card-title--warning {
   color: var(--warning-600);
 }
+
+/* ==========================================
+   HEALTH TIMELINE
+   ========================================== */
+
+.timeline-container {
+  position: relative;
+  padding: var(--space-4) 0;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.timeline-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 30px;
+  width: 4px;
+  background: var(--gray-200);
+  border-radius: var(--radius-full);
+}
+
+.timeline-item {
+  position: relative;
+  padding-left: 60px;
+  margin-bottom: var(--space-8);
+  opacity: 0.8;
+  transition: all var(--transition-base);
+}
+
+.timeline-item--pos-1 {
+  /* Current Item - Highlighted */
+  opacity: 1;
+  transform: scale(1.02);
+}
+
+.timeline-marker {
+  position: absolute;
+  left: 12px;
+  top: 20px;
+  width: 40px;
+  height: 40px;
+  background: var(--gray-300);
+  border-radius: var(--radius-full);
+  border: 4px solid var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  z-index: 10;
+  color: white;
+}
+
+.timeline-item--achieved .timeline-marker {
+  background: var(--success-500);
+}
+
+.timeline-item--achieved .timeline-content {
+  border-left: 4px solid var(--success-500);
+}
+
+.timeline-item--pos-1 .timeline-marker {
+  /* Current Achievement or Next Target being worked on */
+  background: var(--primary-500);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+}
+
+.timeline-item--locked .timeline-marker {
+  background: var(--gray-300);
+  color: var(--gray-500);
+}
+
+.timeline-content {
+  position: relative;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.timeline-title {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.timeline-eta {
+  font-size: var(--font-size-xs);
+  color: var(--primary-600);
+  font-weight: 600;
+  background: var(--primary-50);
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
+}
+
+.timeline-desc {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+/* Floating Progress */
+.progress-floating {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 400px;
+  background: var(--bg-card);
+  padding: var(--space-3);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
+  z-index: 90;
+}
+
+.progress-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+  text-align: center;
+}
+
+.progress-bar-bg {
+  height: 8px;
+  background: var(--gray-200);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-500), var(--primary-400));
+  transition: width 1s ease-out;
+}

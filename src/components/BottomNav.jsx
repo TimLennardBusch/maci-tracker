@@ -2,6 +2,7 @@ export default function BottomNav({ currentView, onNavigate }) {
   const navItems = [
     { id: 'dashboard', icon: <HomeIcon />, label: 'Home' },
     { id: 'morning', icon: <SunIcon />, label: 'Ziel' },
+    { id: 'health', icon: <LungsIcon />, label: 'Körper' },
     { id: 'analytics', icon: <ChartIcon />, label: 'Stats' },
     { id: 'details', icon: <ClockIcon />, label: 'Details' }
   ]
@@ -65,6 +66,14 @@ function ClockIcon() {
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10"/>
       <polyline points="12 6 12 12 16 14"/>
+    </svg>
+  )
+}
+
+function LungsIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
     </svg>
   )
 }

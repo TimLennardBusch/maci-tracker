@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app'
-import { getDatabase, ref, get, set, update, query, orderByChild, equalTo } from 'firebase/database'
+import { getDatabase, ref, get, set, update, push } from 'firebase/database'
 
-// Firebase configuration from environment variables
+// Firebase configuration
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -16,10 +16,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 const db = getDatabase(app)
 
-// User ID for simple auth (demo mode)
+// User ID for simple auth
 const USER_ID = 'demo-user-001'
 
-// Helper: Format date as YYYY-MM-DD (using LOCAL timezone, not UTC)
+// DB Prefix from env or default
+const DB_PREFIX = import.meta.env.VITE_DB_PREFIX || 'maci'
+const ENTRIES_PATH = `${DB_PREFIX}_dailyEntries`
+const LOGS_PATH = `${DB_PREFIX}_cigaretteLogs`
+const SETTINGS_PATH = `${DB_PREFIX}_userSettings`
+
+// Helper: Format date as YYYY-MM-DD
 const formatDate = (date) => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -27,15 +33,69 @@ const formatDate = (date) => {
   return `${year}-${month}-${day}`
 }
 
-// Helper: Get today's date key (Firebase doesn't allow dots in keys)
 const getDateKey = (date) => formatDate(date).replace(/-/g, '_')
 
-// Daily Entries API
+// API
 export const dailyEntriesApi = {
+  // Log a cigarette instantly
+  async logCigarette(userId = USER_ID) {
+    const timestamp = new Date().toISOString()
+    const today = formatDate(new Date())
+    const todayKey = getDateKey(new Date())
+    
+    // 1. Add to logs collection
+    const logsRef = ref(db, `${LOGS_PATH}/${userId}`)
+    await push(logsRef, {
+      timestamp,
+      date: today
+    })
+    
+    // 2. Update daily entry count
+    const entryRef = ref(db, `${ENTRIES_PATH}/${userId}/${todayKey}`)
+    const snapshot = await get(entryRef)
+    
+    let currentCount = 0
+    let existingData = {}
+    
+    if (snapshot.exists()) {
+      existingData = snapshot.val()
+      currentCount = existingData.cigarettes_count || 0
+    }
+    
+    const updates = {
+      ...existingData,
+      user_id: userId,
+      date: today,
+      cigarettes_count: currentCount + 1,
+      evening_completed: false, // Automatically fail the day if smoking
+      updated_at: timestamp
+    }
+    
+    if (!existingData.created_at) {
+      updates.created_at = timestamp
+    }
+    
+    await set(entryRef, updates)
+    return updates
+  },
+  
+  // Get all cigarette logs for stats
+  async getCigaretteLogs(userId = USER_ID) {
+    const logsRef = ref(db, `${LOGS_PATH}/${userId}`)
+    try {
+      const snapshot = await get(logsRef)
+      if (!snapshot.exists()) return []
+      return Object.values(snapshot.val())
+    } catch (error) {
+      console.error('Error fetching logs:', error)
+      return []
+    }
+  },
+
   // Get today's entry
   async getToday(userId = USER_ID) {
     const today = getDateKey(new Date())
-    const entryRef = ref(db, `dailyEntries/${userId}/${today}`)
+    const entryRef = ref(db, `${ENTRIES_PATH}/${userId}/${today}`)
     
     try {
       const snapshot = await get(entryRef)
@@ -49,10 +109,10 @@ export const dailyEntriesApi = {
     }
   },
 
-  // Set morning goal
+  // Set morning goal (Motivation)
   async setMorningGoal(userId = USER_ID, goal) {
     const today = getDateKey(new Date())
-    const entryRef = ref(db, `dailyEntries/${userId}/${today}`)
+    const entryRef = ref(db, `${ENTRIES_PATH}/${userId}/${today}`)
     
     try {
       const snapshot = await get(entryRef)
@@ -79,21 +139,29 @@ export const dailyEntriesApi = {
   },
 
   // Complete evening check
-  async completeEvening(userId = USER_ID, completed, reflectionNote = null, dateKey = null) {
+  // cigarettesCount: optional override
+  async completeEvening(userId = USER_ID, completed, reflectionNote = null, dateKey = null, cigarettesCount = null) {
     const today = dateKey ? formatDate(new Date(dateKey)) : getDateKey(new Date())
-    // If dateKey provided, ensure it uses underscores for firebase key
     const entryDateKey = dateKey ? dateKey.replace(/-/g, '_') : today
     
-    const entryRef = ref(db, `dailyEntries/${userId}/${entryDateKey}`)
+    const entryRef = ref(db, `${ENTRIES_PATH}/${userId}/${entryDateKey}`)
     
     try {
       const updates = {
-        evening_completed: completed,
+        evening_completed: completed, // true = Rauchfrei, false = Geraucht
         updated_at: new Date().toISOString()
       }
       
       if (reflectionNote) {
         updates.reflection_note = reflectionNote
+      }
+      
+      // If manually overriding count (e.g. forgot to log)
+      if (cigarettesCount !== null) {
+        updates.cigarettes_count = parseInt(cigarettesCount)
+      } else if (completed === true) {
+        // If marked as rauchfrei (completed=true), ensure count is 0
+         updates.cigarettes_count = 0
       }
       
       await update(entryRef, updates)
@@ -106,9 +174,9 @@ export const dailyEntriesApi = {
     }
   },
 
-  // Get entries for analytics (last N days)
+  // Get history stats
   async getHistory(userId = USER_ID, days = 30) {
-    const entriesRef = ref(db, `dailyEntries/${userId}`)
+    const entriesRef = ref(db, `${ENTRIES_PATH}/${userId}`)
     
     try {
       const snapshot = await get(entriesRef)
@@ -117,92 +185,126 @@ export const dailyEntriesApi = {
       const data = snapshot.val()
       const entries = Object.entries(data).map(([key, value]) => ({
         ...value,
-        date: key.replace(/_/g, '-') // Convert back to YYYY-MM-DD
+        date: key.replace(/_/g, '-')
       }))
       
-      // Filter to last N days and sort
       const startDate = new Date()
       startDate.setDate(startDate.getDate() - days)
       
       return entries
         .filter(e => new Date(e.date) >= startDate)
-        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .sort((a, b) => new Date(b.date) - new Date(a.date)) // Newest first
     } catch (error) {
       console.error('Error getting history:', error)
       return []
     }
   },
 
-  // Calculate current streak
+  // Calculate smoke-free streak
   async getStreak(userId = USER_ID) {
     try {
-      const history = await this.getHistory(userId, 365) // Get up to 1 year
-      
+      // Logic: Count consecutive days with evening_completed = true OR no cigarettes_count
+      const history = await this.getHistory(userId, 365)
       if (!history || history.length === 0) return 0
       
-      // Filter only completed entries and sort newest first
-      const completedEntries = history
-        .filter(e => e.evening_completed === true)
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-      
-      if (completedEntries.length === 0) return 0
+      // Sort newest first
+      const sorted = history.sort((a, b) => new Date(b.date) - new Date(a.date))
       
       let streak = 0
       const today = new Date()
-      today.setHours(0, 0, 0, 0)
+      today.setHours(0,0,0,0)
       
-      // Get today's date string in YYYY-MM-DD format
+      // Check today status
       const todayStr = formatDate(today)
+      const todayEntry = sorted.find(e => e.date === todayStr)
       
-      // Check if today is completed
-      const todayEntry = completedEntries.find(e => e.date === todayStr)
+      // If today we smoked, streak is 0
+      if (todayEntry && (todayEntry.evening_completed === false || (todayEntry.cigarettes_count && todayEntry.cigarettes_count > 0))) {
+        return 0
+      }
       
-      if (todayEntry) {
-        // Today is completed, start counting from today
-        streak = 1
-        let checkDate = new Date(today)
-        checkDate.setDate(checkDate.getDate() - 1)
-        
-        // Count backwards from yesterday
-        while (true) {
-          const checkDateStr = formatDate(checkDate)
-          const found = completedEntries.find(e => e.date === checkDateStr)
-          if (found) {
-            streak++
-            checkDate.setDate(checkDate.getDate() - 1)
-          } else {
-            break
-          }
-        }
+      // If today is smoke-free so far (or not entered), we continue checking from yesterday
+      // BUT if we are building the "Current Streak", usually implies full completed days? 
+      // For "Rauchfrei seit X Tagen", we usually count full days + today if currently clean
+      // Let's count consecutive clean days backwards from yesterday (or today if entry exists and is clean)
+      
+      let startCheckDate = new Date(today)
+      
+      if (todayEntry && todayEntry.evening_completed === true) {
+         streak = 1 // Today counts
+         startCheckDate.setDate(startCheckDate.getDate() - 1) 
       } else {
-        // Today not completed, check if yesterday was completed
-        const yesterday = new Date(today)
-        yesterday.setDate(yesterday.getDate() - 1)
-        const yesterdayStr = formatDate(yesterday)
-        const yesterdayEntry = completedEntries.find(e => e.date === yesterdayStr)
+         // Today no entry yet, or entry exists but not "completed" flag (maybe just morning goal)
+         // Check if logs exist for today? If logs exist, streak broken.
+         if (todayEntry && todayEntry.cigarettes_count > 0) return 0
+         
+         // If no smoking today, check yesterday
+         // Streak starts from yesterday
+         startCheckDate.setDate(startCheckDate.getDate() - 1)
+      }
+      
+      while (true) {
+        const checkDateStr = formatDate(startCheckDate)
+        const entry = sorted.find(e => e.date === checkDateStr)
         
-        if (yesterdayEntry) {
-          streak = 1
-          let checkDate = new Date(yesterday)
-          checkDate.setDate(checkDate.getDate() - 1)
-          
-          while (true) {
-            const checkDateStr = formatDate(checkDate)
-            const found = completedEntries.find(e => e.date === checkDateStr)
-            if (found) {
-              streak++
-              checkDate.setDate(checkDate.getDate() - 1)
-            } else {
-              break
-            }
-          }
+        // A day counts if:
+        // 1. Entry exists AND evening_completed is true
+        // OR 2. No entry exists? (Assumption: No news is no smoking?? Or do we require confirmation?)
+        // Strict approach: Must have entry confirming no smoking.
+        // User said: "habit tracker" logic. 
+        
+        if (entry && entry.evening_completed === true) {
+          streak++
+        } else {
+          // Break if day is missing or failed
+          // If day is missing, streak usually breaks in habit trackers
+          break 
         }
+        startCheckDate.setDate(startCheckDate.getDate() - 1)
       }
       
       return streak
     } catch (error) {
       console.error('Error calculating streak:', error)
       return 0
+    }
+  },
+  
+  // Get time of last cigarette for exact timing
+  async getLastCigaretteTime(userId = USER_ID) {
+    try {
+      // 1. Check exact logs first (most accurate)
+      const logsRef = ref(db, `${LOGS_PATH}/${userId}`)
+      // Query last item... Firebase realtime DB sorting is tricky with simpler SDK usage.
+      // Just fetch all logs (not too many expected per user ideally) or limit query if possible
+      // Using simple fetch for now
+      const logs = await this.getCigaretteLogs(userId)
+      if (logs.length > 0) {
+        // Sort logs desc
+        logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        return new Date(logs[0].timestamp)
+      }
+      
+      // 2. If no logs, fallback to daily entries with evening_completed = false
+      const history = await this.getHistory(userId, 365)
+      const smokedDays = history.filter(e => e.evening_completed === false || e.cigarettes_count > 0)
+      
+      if (smokedDays.length > 0) {
+        // Sort newest
+        smokedDays.sort((a,b) => new Date(b.date) - new Date(a.date))
+        const lastDay = smokedDays[0]
+        // Assume end of day if we don't know time? Or noon? 
+        // Let's assume 23:59 of that day to be safe/conservative for health tracking
+        const date = new Date(lastDay.date)
+        date.setHours(23, 59, 59)
+        return date
+      }
+      
+      // 3. Never smoked (in tracked history)
+      return null
+    } catch (e) {
+      console.error(e)
+      return null
     }
   }
 }

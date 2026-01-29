@@ -24,18 +24,18 @@ export default function MorningInput({ onSubmit, existingGoal }) {
           <div className="morning-icon">🌅</div>
           <h2 className="morning-title">Guten Morgen!</h2>
           <p className="morning-subtitle">
-            Was macht dich heute 1% besser?
+            Worauf möchtest du dich heute konzentrieren?
           </p>
 
           <form onSubmit={handleSubmit} className="morning-form">
             <div className="input-group">
-              <label htmlFor="goal">Dein heutiges Ziel</label>
+              <label htmlFor="goal">Dein Fokus heute</label>
               <textarea
                 id="goal"
                 className="input textarea"
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
-                placeholder="z.B. 10 Minuten meditieren, 1 Kapitel lesen, 30 Minuten Sport..."
+                placeholder="z.B. Rauchfrei bleiben, tief atmen, Sport machen..."
                 rows={4}
                 required
               />
@@ -52,16 +52,16 @@ export default function MorningInput({ onSubmit, existingGoal }) {
                   Wird gespeichert...
                 </>
               ) : existingGoal ? (
-                '✓ Ziel aktualisieren'
+                '✓ Fokus aktualisieren'
               ) : (
-                '✓ Ziel festlegen'
+                '✓ Fokus festlegen'
               )}
             </button>
           </form>
 
           {existingGoal && (
             <p className="mt-4 text-center" style={{ color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)' }}>
-              Du kannst dein Ziel jederzeit bearbeiten
+              Du kannst deinen Fokus jederzeit anpassen
             </p>
           )}
         </div>

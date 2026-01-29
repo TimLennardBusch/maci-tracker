@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard'
 import MorningInput from './components/MorningInput'
 import EveningCheck from './components/EveningCheck'
 import AnalyticsChart from './components/AnalyticsChart'
+import HealthMilestones from './components/HealthMilestones'
 import DetailsView from './components/DetailsView'
 import BottomNav from './components/BottomNav'
 
@@ -114,16 +115,27 @@ function App() {
   }
 
   // Handle popup completion (for today or yesterday)
-  const handleCompletion = async (completed, reflection, date = null) => {
+  // cigarettesCount: optional manual override
+  const handleCompletion = async (completed, reflection, date = null, cigarettesCount = null) => {
     try {
       if (date) {
-        await dailyEntriesApi.completeEvening(DEMO_USER_ID, completed, reflection, date)
+        await dailyEntriesApi.completeEvening(DEMO_USER_ID, completed, reflection, date, cigarettesCount)
       } else {
-        await dailyEntriesApi.completeEvening(DEMO_USER_ID, completed, reflection)
+        await dailyEntriesApi.completeEvening(DEMO_USER_ID, completed, reflection, null, cigarettesCount)
       }
       await loadData()
     } catch (error) {
       console.error('Error completing goal:', error)
+    }
+  }
+
+  // Handle logging a cigarette (relapse)
+  const handleLogCigarette = async () => {
+    try {
+      await dailyEntriesApi.logCigarette(DEMO_USER_ID)
+      await loadData()
+    } catch (error) {
+      console.error('Error logging cigarette:', error)
     }
   }
 
@@ -186,6 +198,8 @@ function App() {
         return <AnalyticsChart entries={allEntries} currentStreak={streak} />
       case 'details':
         return <DetailsView entries={allEntries} />
+      case 'health':
+        return <HealthMilestones />
       default:
         return (
           <Dashboard
@@ -196,6 +210,7 @@ function App() {
             onNavigate={setCurrentView}
             onComplete={handleCompletion}
             isEvening={isEvening}
+            onLogCigarette={handleLogCigarette}
           />
         )
     }
