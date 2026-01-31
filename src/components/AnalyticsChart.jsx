@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,7 +11,8 @@ import {
   Legend,
   Filler
 } from 'chart.js'
-import { Line } from 'react-chartjs-2'
+import { Bar } from 'react-chartjs-2'
+import { dailyEntriesApi } from '../lib/supabase'
 
 ChartJS.register(
   CategoryScale,
@@ -26,17 +27,33 @@ ChartJS.register(
 )
 
 export default function AnalyticsChart({ entries, currentStreak = 0 }) {
-  // Milestone streak numbers (same as WeekOverview)
-  const milestones = [5, 10, 25, 50, 100, 150, 200, 365]
+  const [allLogs, setAllLogs] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  // Process data for the last 14 days + 7 future days
+  useEffect(() => {
+    loadAllData()
+  }, [])
+
+  const loadAllData = async () => {
+    try {
+      setLoading(true)
+      const logs = await dailyEntriesApi.getCigaretteLogs()
+      setAllLogs(logs)
+    } catch (error) {
+      console.error('Error loading logs:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Process data for the last 14 days
   const getDateRange = () => {
     const days = []
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
-    // 14 days ago until 7 days in the future (21 total days)
-    for (let i = 13; i >= -7; i--) {
+    // Last 14 days
+    for (let i = 13; i >= 0; i--) {
       const date = new Date(today)
       date.setDate(today.getDate() - i)
       days.push(date)
@@ -48,86 +65,38 @@ export default function AnalyticsChart({ entries, currentStreak = 0 }) {
   const days = getDateRange()
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  
-  const getEntryForDate = (date) => {
+
+  // Get cigarettes count for each day from entries
+  const getCigarettesForDate = (date) => {
     const dateStr = date.toISOString().split('T')[0]
-    return entries.find(e => e.date === dateStr)
+    const entry = entries.find(e => e.date === dateStr)
+    return entry?.cigarettes_count || 0
   }
 
-  // Calculate projected streak for future days
-  const getProjectedStreak = (date) => {
-    const targetDate = new Date(date)
-    targetDate.setHours(0, 0, 0, 0)
-    
-    const daysFromToday = Math.round((targetDate - today) / (1000 * 60 * 60 * 24))
-    
-    if (daysFromToday <= 0) return null
-    
-    return currentStreak + daysFromToday
-  }
-
-  // Check if a streak is a milestone
-  const isMilestone = (streak) => {
-    return streak && milestones.includes(streak)
-  }
-
-  // Calculate daily success rate (cumulative up to that day)
-  const dailyData = days.map((date) => {
-    if (date > today) {
-      return null
-    }
-    
-    const relevantEntries = entries.filter(e => {
-      const entryDate = new Date(e.date)
-      entryDate.setHours(0, 0, 0, 0)
-      return entryDate <= date && typeof e.evening_completed === 'boolean'
-    })
-    
-    const completed = relevantEntries.filter(e => e.evening_completed === true).length
-    const total = relevantEntries.length
-    
-    return total > 0 ? Math.round((completed / total) * 100) : null
-  })
-
-  // Create point colors - highlight milestones with diamond color
-  const pointBackgroundColors = days.map((date) => {
-    const projectedStreak = getProjectedStreak(date)
-    if (isMilestone(projectedStreak)) {
-      return 'rgb(56, 189, 248)' // Cyan/diamond color for milestones
-    }
-    return 'rgb(139, 92, 246)' // Default purple
-  })
-
-  // Create point radius - larger for milestones
-  const pointRadii = days.map((date) => {
-    const projectedStreak = getProjectedStreak(date)
-    if (isMilestone(projectedStreak)) {
-      return 7 // Larger for milestones
-    }
-    return 4 // Default size
-  })
+  const dailyData = days.map(date => getCigarettesForDate(date))
 
   const labels = days.map(date => {
     return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
+  })
+
+  // Create gradient colors based on value
+  const barColors = dailyData.map(value => {
+    if (value === 0) return 'rgba(16, 185, 129, 0.8)' // Green for 0
+    if (value <= 5) return 'rgba(251, 191, 36, 0.8)' // Yellow for low
+    return 'rgba(239, 68, 68, 0.8)' // Red for high
   })
 
   const data = {
     labels,
     datasets: [
       {
-        label: 'Erfolgsrate',
+        label: 'Zigaretten',
         data: dailyData,
-        borderColor: 'rgb(139, 92, 246)',
-        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-        fill: true,
-        tension: 0.4,
-        borderWidth: 3,
-        pointRadius: pointRadii,
-        pointHoverRadius: 12,
-        pointBackgroundColor: pointBackgroundColors,
-        pointBorderColor: '#fff',
-        pointBorderWidth: 3,
-        spanGaps: true,
+        backgroundColor: barColors,
+        borderColor: barColors.map(c => c.replace('0.8', '1')),
+        borderWidth: 1,
+        borderRadius: 6,
+        borderSkipped: false,
       }
     ]
   }
@@ -152,15 +121,9 @@ export default function AnalyticsChart({ entries, currentStreak = 0 }) {
         displayColors: false,
         callbacks: {
           label: function(context) {
-            const index = context.dataIndex
-            const date = days[index]
-            const projectedStreak = getProjectedStreak(date)
-            
-            if (projectedStreak && isMilestone(projectedStreak)) {
-              return `💎 Meilenstein: Tag ${projectedStreak} Streak!`
-            }
-            if (context.parsed.y === null) return 'Keine Daten'
-            return `Erfolgsrate: ${context.parsed.y}%`
+            const value = context.parsed.y
+            if (value === 0) return '🌟 Rauchfrei!'
+            return `🚬 ${value} Zigaretten`
           }
         }
       }
@@ -182,17 +145,12 @@ export default function AnalyticsChart({ entries, currentStreak = 0 }) {
       y: {
         display: true,
         min: 0,
-        max: 110,
         grid: {
           color: 'rgba(226, 232, 240, 0.5)',
           drawTicks: false
         },
         ticks: {
-          stepSize: 20,
-          callback: function(value) {
-            if (value > 100) return ''
-            return value + '%'
-          },
+          stepSize: 5,
           color: '#94a3b8',
           font: {
             size: 10
@@ -203,39 +161,56 @@ export default function AnalyticsChart({ entries, currentStreak = 0 }) {
   }
 
   // Calculate stats
-  const totalDays = entries.filter(e => typeof e.evening_completed === 'boolean').length
-  const completedDays = entries.filter(e => e.evening_completed === true).length
-  const successRate = totalDays > 0 ? Math.round((completedDays / totalDays) * 100) : 0
+  const daysWithData = entries.filter(e => e.cigarettes_count !== undefined)
+  const totalCigarettes = entries.reduce((sum, e) => sum + (e.cigarettes_count || 0), 0)
+  const avgPerWeek = daysWithData.length > 0 
+    ? Math.round((totalCigarettes / daysWithData.length) * 7)
+    : 0
+  
+  // Total ever from all logs
+  const totalEver = allLogs.length
 
   return (
     <div className="analytics page-with-nav">
       <div className="container">
         <div className="page-header">
-          <h1>📊 Dein Fortschritt</h1>
-          <p className="subtitle">Die letzten 14 Tage</p>
+          <h1>📊 Statistik</h1>
+          <p className="subtitle">Dein Rauchverhalten</p>
         </div>
 
-        <div className="card analytics-card animate-fade-in">
-          <h3 className="analytics-title">Erfolgsrate über Zeit</h3>
-          <div className="chart-container">
-            <Line data={data} options={options} />
+        {loading ? (
+          <div className="loading-container">
+            <div className="spinner"></div>
           </div>
-        </div>
+        ) : (
+          <>
+            <div className="card analytics-card animate-fade-in">
+              <h3 className="analytics-title">Zigaretten pro Tag</h3>
+              <div className="chart-container">
+                <Bar data={data} options={options} />
+              </div>
+            </div>
 
-        <div className="stats-grid stats-grid--compact animate-fade-in" style={{ animationDelay: '0.1s' }}>
-          <div className="stat-card">
-            <div className="stat-value">{totalDays}</div>
-            <div className="stat-label">Getrackte Tage</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value">{successRate}%</div>
-            <div className="stat-label">Erfolgsrate</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value">{totalDays - completedDays}</div>
-            <div className="stat-label">Verpasste Tage</div>
-          </div>
-        </div>
+            <div className="stats-grid stats-grid--compact animate-fade-in" style={{ animationDelay: '0.1s' }}>
+              <div className="stat-card">
+                <div className="stat-value">{avgPerWeek}</div>
+                <div className="stat-label">Ø pro Woche</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value">{totalEver}</div>
+                <div className="stat-label">Gesamt erfasst</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value">{currentStreak}</div>
+                <div className="stat-label">Rauchfreie Tage</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value">{daysWithData.length}</div>
+                <div className="stat-label">Getrackte Tage</div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

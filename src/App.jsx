@@ -7,6 +7,7 @@ import EveningCheck from './components/EveningCheck'
 import AnalyticsChart from './components/AnalyticsChart'
 import HealthMilestones from './components/HealthMilestones'
 import DetailsView from './components/DetailsView'
+import LifeCalculator from './components/LifeCalculator'
 import BottomNav from './components/BottomNav'
 
 // Demo user ID for simple password auth (replace with real auth if needed)
@@ -200,6 +201,8 @@ function App() {
         return <DetailsView entries={allEntries} />
       case 'health':
         return <HealthMilestones />
+      case 'calculator':
+        return <LifeCalculator />
       default:
         return (
           <Dashboard
@@ -207,6 +210,7 @@ function App() {
             todayEntry={todayEntry}
             yesterdayEntry={yesterdayEntry}
             weekEntries={weekEntries}
+            allEntries={allEntries}
             onNavigate={setCurrentView}
             onComplete={handleCompletion}
             isEvening={isEvening}
@@ -219,7 +223,7 @@ function App() {
   return (
     <div className="app">
       {renderView()}
-      <BottomNav currentView={currentView} onNavigate={setCurrentView} />
+      <BottomNav currentView={currentView} onNavigate={setCurrentView} onLogCigarette={handleLogCigarette} />
     </div>
   )
 }

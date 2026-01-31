@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import StreakBadge from './StreakBadge'
 import WeekOverview from './WeekOverview'
 import CompletionPopup from './CompletionPopup'
 
@@ -7,7 +6,8 @@ export default function Dashboard({
   streak, 
   todayEntry, 
   yesterdayEntry,
-  weekEntries, 
+  weekEntries,
+  allEntries,
   onNavigate,
   onComplete,
   isEvening,
@@ -20,12 +20,24 @@ export default function Dashboard({
   // New state for cigarette log popup
   const [showSadPopup, setShowSadPopup] = useState(false)
 
-  const hasMorningGoal = todayEntry?.morning_goal
-  const hasCompletedEvening = typeof todayEntry?.evening_completed === 'boolean'
-  const hasYesterdayPending = yesterdayEntry?.morning_goal && typeof yesterdayEntry?.evening_completed !== 'boolean'
+  // Today's cigarette count
+  const todayCigarettes = todayEntry?.cigarettes_count || 0
+  const todaySmoked = todayCigarettes > 0
   
-  // Calculate money saved (Example: 8€ per day)
-  const moneySaved = streak * 8
+  // Yesterday smoked?
+  const yesterdaySmoked = yesterdayEntry?.cigarettes_count > 0 || yesterdayEntry?.evening_completed === false
+  
+  // Calculate 30-day stats
+  const entries30Days = allEntries || []
+  const daysWithCigs = entries30Days.filter(e => e.cigarettes_count && e.cigarettes_count > 0)
+  const totalCigs30Days = daysWithCigs.reduce((sum, e) => sum + (e.cigarettes_count || 0), 0)
+  const avgPerDay = daysWithCigs.length > 0 ? totalCigs30Days / daysWithCigs.length : 0
+  
+  // Money calculations (0.35€ per cigarette)
+  const PRICE_PER_CIG = 0.35
+  const todayMoneyCost = (todayCigarettes * PRICE_PER_CIG).toFixed(2)
+  const last30DaysCost = (totalCigs30Days * PRICE_PER_CIG).toFixed(2)
+  const potentialSavingsToday = (avgPerDay * PRICE_PER_CIG).toFixed(2)
 
   const openCompletionPopup = (goal, date = null) => {
     setPopupGoal(goal)
@@ -37,72 +49,14 @@ export default function Dashboard({
     onComplete(completed, reflection, popupDate, cigaretteCount)
     setShowCompletionPopup(false)
   }
-  
-  const handleLogClick = () => {
-    // Show sad popup
-    setShowSadPopup(true)
-    // Trigger log after delay or immediately? User wants popup to appear. 
-    // "Popup soll mit traurigem Smiley erscheinen und dazu soll stehen..."
-    // "Anzahl an Loggs soll als Basis dienen"
-    // So we log it.
-    if (onLogCigarette) {
-      onLogCigarette()
-    }
-    
-    // Auto close sad popup after 3 seconds
-    setTimeout(() => {
-      setShowSadPopup(false)
-    }, 3000)
-  }
-
-  // Render status icon button - ALWAYS clickable to edit
-  const StatusBadge = ({ completed, isPending, onClick, goal, date }) => {
-    const handleClick = () => {
-      openCompletionPopup(goal, date)
-    }
-
-    if (isPending) {
-      return (
-        <button 
-          onClick={handleClick}
-          className="status-icon status-icon--pending"
-          title="Status bestätigen"
-        >
-          ⏳
-        </button>
-      )
-    }
-    
-    if (completed === true) {
-      return (
-        <button 
-          onClick={handleClick}
-          className="status-icon status-icon--success"
-          title="Status ändern"
-        >
-          ✅
-        </button>
-      )
-    }
-    
-    return (
-      <button 
-        onClick={handleClick}
-        className="status-icon status-icon--failed"
-        title="Status ändern"
-      >
-        🚬
-      </button>
-    )
-  }
 
   return (
     <div className="dashboard page-with-nav">
       <div className="container container--narrow">
-        {/* Header */}
+        {/* Bereich 1: Begrüßung */}
         <div className="dashboard-header animate-fade-in">
           <div>
-            <h1 className="greeting">Moin, Tim!</h1>
+            <h1 className="greeting">Hallo, Maciek!</h1>
             <p className="greeting-time" style={{ maxWidth: '250px', lineHeight: '1.4' }}>
               "{['Jeder rauchfreie Tag ist ein Sieg.', 
                  'Deine Gesundheit dankt es dir.', 
@@ -112,87 +66,76 @@ export default function Dashboard({
                 ][Math.floor(Math.random() * 5)]}"
             </p>
           </div>
-          {/* Cigarette Log Button */}
-          <button 
-             className="btn btn--secondary btn--icon" 
-             onClick={handleLogClick}
-             title="Zigarette geraucht loggen"
-             style={{ background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }}
-          >
-            +🚬
-          </button>
         </div>
 
-        {/* Rauchfrei Streak Section */}
-        <StreakBadge streak={streak} size="compact" label="Rauchfrei seit" />
-
-        {/* Money Saved Card */}
-        <div className="card money-card animate-fade-in mb-4" style={{ background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', border: '1px solid #10b981' }}>
-          <div className="money-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <p style={{ fontSize: '0.875rem', color: '#047857', fontWeight: 600 }}>Geld gespart</p>
-              <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#065f46' }}>{moneySaved} €</p>
+        {/* Bereich 2: Dynamischer Status */}
+        <div className="card status-card animate-fade-in mb-4">
+          {todaySmoked ? (
+            // Heute geraucht - Anzahl zeigen
+            <div className="status-content status-content--bad">
+              <div className="status-icon-large">🚬</div>
+              <div className="status-info">
+                <p className="status-label">Heute geraucht</p>
+                <p className="status-value status-value--danger">{todayCigarettes} Zigaretten</p>
+              </div>
             </div>
-            <div style={{ fontSize: '2rem' }}>💰</div>
-          </div>
-        </div>
-
-        {/* CATCH-UP BOX: Yesterday's Goal */}
-        {hasYesterdayPending && (
-          <div className="card goal-card goal-card--compact goal-card--warning animate-fade-in mb-4">
-            <div className="goal-card-header">
-              <h2 className="goal-card-title goal-card-title--warning">Gestern rauchfrei?</h2>
-              <StatusBadge 
-                isPending={true}
-                goal={yesterdayEntry.morning_goal}
-                date={yesterdayEntry.date}
-              />
-            </div>
-            
-            <div className="goal-row">
-              <p className="goal-text goal-text--inline">{yesterdayEntry.morning_goal}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Today's Goal */}
-        <div className="card goal-card goal-card--compact animate-fade-in" style={{ animationDelay: '0.1s' }}>
-          <div className="goal-card-header">
-            <h2 className="goal-card-title">Heutiges Ziel</h2>
-            {hasMorningGoal && (
-              <StatusBadge 
-                completed={todayEntry.evening_completed}
-                isPending={!hasCompletedEvening}
-                goal={todayEntry.morning_goal}
-                date={null}
-              />
-            )}
-          </div>
-          
-          {hasMorningGoal ? (
-            <div className="goal-row">
-              <div className="goal-input-display">
-                <span className="goal-text-content">{todayEntry.morning_goal}</span>
-                <button 
-                  onClick={() => onNavigate('morning')}
-                  className="btn btn--icon btn--ghost edit-btn"
-                  title="Ziel bearbeiten"
-                >
-                  ✎
-                </button>
+          ) : yesterdaySmoked ? (
+            // Gestern geraucht, heute noch nicht
+            <div className="status-content status-content--warning">
+              <div className="status-icon-large">💪</div>
+              <div className="status-info">
+                <p className="status-label" style={{ color: '#f59e0b', fontWeight: 700, fontSize: '1.25rem' }}>
+                  HEUTE RAUCHFREI WERDEN
+                </p>
+                <p className="status-subtitle">Du schaffst das!</p>
               </div>
             </div>
           ) : (
-            <button 
-              onClick={() => onNavigate('morning')}
-              className="btn btn--primary btn--full"
-            >
-              🌅 Tagesziel setzen
-            </button>
+            // Rauchfrei seit X Tagen
+            <div className="status-content status-content--good">
+              <div className="status-icon-large">🌟</div>
+              <div className="status-info">
+                <p className="status-label">Rauchfrei seit</p>
+                <p className="status-value status-value--success">{streak} Tagen</p>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Week Overview */}
+        {/* Bereich 3: Geld-Berechnung */}
+        <div className={`card money-card animate-fade-in mb-4 ${todaySmoked ? 'money-card--bad' : 'money-card--good'}`}>
+          {todaySmoked ? (
+            // Geld verschwendet heute
+            <div className="money-content">
+              <div className="money-main">
+                <p className="money-label" style={{ color: '#b91c1c' }}>Heute verschwendet</p>
+                <p className="money-value" style={{ color: '#dc2626' }}>{todayMoneyCost} €</p>
+              </div>
+              <div className="money-secondary">
+                <span style={{ fontSize: '1.5rem' }}>💸</span>
+                <p style={{ fontSize: '0.875rem', color: '#991b1b' }}>
+                  In den letzten 30 Tagen: <strong>{last30DaysCost} €</strong>
+                </p>
+              </div>
+            </div>
+          ) : (
+            // Sparpotential heute
+            <div className="money-content">
+              <div className="money-main">
+                <p className="money-label" style={{ color: '#047857' }}>Du sparst heute</p>
+                <p className="money-value" style={{ color: '#059669' }}>{potentialSavingsToday} €</p>
+              </div>
+              <div className="money-secondary">
+                <span style={{ fontSize: '1.5rem' }}>💰</span>
+                <p style={{ fontSize: '0.875rem', color: '#065f46' }}>
+                  Wenn du heute nicht rauchst!
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bereich 4: Wochenübersicht */}
         <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
           <WeekOverview entries={weekEntries} currentStreak={streak} />
         </div>
